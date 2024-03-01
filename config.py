@@ -5,6 +5,7 @@ fred_key = '378bdfc0c483b3259c41cecde2ae2f0f'
 constituents_path = "C:/Users/malha/Documents/Data/S&P 500 Historical Components & Changes(08-01-2023).csv"
 upper_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/"
 stocks_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.csv"
+stocks_path_parquet = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.parquet.gzip"
 macro_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/macros1w.csv"
 etf_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/etfs1w.csv"
 
@@ -14,3 +15,5 @@ fred_list = ['MCOILWTICO', 'WCOILBRENTEU', 'UNRATE', 'FF', 'PCE', 'FYFSGDA188S',
               'CEU6500000001', 'TB3MS', 'DNPVRC1A027NBEA', 'DNPVRC1A027NBEA', 'DGDSRC1', 'DNRGRC1M027SBEA', 'AHEMAN',
               'CEU3100000008','AHECONS', 'LNU03032229', 'LNU02032184', 'FEDFUNDS', 'CEU7000000008', 'CEU6000000008',
               'CEU4200000008', 'PI', 'REALLNNSA', 'MVPHGFD027MNFRBDAL']
+
+etf_list = ['^GSPC', 'XLE', 'XLI', 'XLB', 'XLY', 'XLP', 'XLV', 'XLF','XLU']

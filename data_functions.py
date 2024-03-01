@@ -1,11 +1,3 @@
-from statsmodels.tsa.stattools import adfuller
-import pandas as pd
-import numpy as np
-import yfinance as yf
-from fredapi import Fred
-import pandas_ta as ta
-from config import *
-
 def tester():
     return np.mean([2,4])
     

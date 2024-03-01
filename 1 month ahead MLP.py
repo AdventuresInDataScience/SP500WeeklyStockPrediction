@@ -13,14 +13,9 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from fredapi import Fred
-import pandas_ta as ta
-import dfply
-import configparser
-import sys
+import ta
 from config import *
 from functions.data_functions import *
-
-
 
 #%% 1. Download all SP500 data and save
 
@@ -28,8 +23,7 @@ from functions.data_functions import *
 fred = Fred(api_key=fred_key)
 
 #make list of constituents
-ticker_list() = make_ticker_list()
-
+ticker_list = make_ticker_list()
 
 #get weekly stock data
 stocks = get_yahoo_data(interval = "1wk")
@@ -42,8 +36,8 @@ stocks = pd.read_csv(stocks_path)
 stocks = clean_stocks(stocks)
 
 #SAVE/LOAD CHECKPOINT
-#stocks.to_csv(stocks_path, index = False)
-stocks = pd.read_csv(stocks_path)
+#stocks.to_parquet(stocks_path_parquet, index = False, compression='gzip')
+stocks = pd.read_parquet(stocks_path_parquet)
 
 #%% 2a. Download Macro Data and engineer features
 #First we make a master date list,which is all the dates in the stocks df
@@ -59,7 +53,6 @@ macro_df = pd.read_csv(macro_path)
 #inflation = pd.read_csv("C:\Users\malha\Documents\Projects\All SP500 stocks\us_inflation.csv")
 
 # First we download the various etfs and index histories
-etf_list = ['^GSPC', 'XLE', 'XLI', 'XLB', 'XLY', 'XLP', 'XLV', 'XLF','XLU']
 etf_df = yf.download(etf_list, period="max", interval = "1wk", threads = 'True')
 # reshape data and add a column for the change that week
 etf_df = etf_df.stack().reset_index()
@@ -76,7 +69,7 @@ etf_df = etf_df.replace([np.inf, -np.inf], 0)
 
 #SAVE/LOAD CHECKPOINT
 #etf_df.to_csv(etf_path, index = False)
-stocks = pd.read_csv(etf_path)
+etf_df = pd.read_csv(etf_path)
 #%% Add Indicators to Stock data
 #1  - Feature Engineering - Lags
 for n in range(1,40):
@@ -101,48 +94,36 @@ stocks = stocks.copy()
 for n in range(1,40):
     stocks[f'High.toHigh{n}']= stocks.groupby('Ticker').apply(lambda x: x['High']/x['High'].shift(n), include_groups=False).reset_index()['High']
 stocks = stocks.copy()
-# #6 - Feature Engineer 6 - Distance from SMAs Bollinger Bands(normalised)
-'''
-This is VERY slow. Needs some re-thinking
-'''
-# for ma in range(1,40):
-#     for s in [-3,-2.5,-2,-1.5,-1,-0.5, 0, 0.5,1,1.5,2,2.5,3]:
-#         df[f'Close.sma{n}.sd{s}'] = df['Close']/((df['Close'].rolling(ma).mean()) + s * (df['Close'].rolling(ma).std()))
-#         a = stocks.groupby('Ticker').apply(lambda df: df['Close']/((df['Close'].rolling(ma).mean()) + s * (df['Close'].rolling(ma).std())).reset_index())
-#         a = stocks.groupby('Ticker').apply(lambda df: df['Close']/((df['Close'].rolling(40).mean()) + 2 * (df['Close'].rolling(ma).std())).reset_index())
-# stocks = stocks.copy()
 
-#7 - Feature Engineer 7 - Distance from Highest High
+#6 - Feature Engineer 7 - Distance from Highest High
 for n in range(1,40):
     a = stocks.groupby('Ticker')['High'].rolling(n).max().reset_index()['High']
     stocks[f'Close.hh{n}'] = stocks['Close']/a
 stocks = stocks.copy()
 del a
-#8 - Feature Engineer 8 - Distance from Lowest Low
+#7 - Feature Engineer 8 - Distance from Lowest Low
 for n in range(1,40):
-    a = stocks.groupby('Ticker')['Low'].rolling(n).max().reset_index()['Low']
+    a = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index()['Low']
     stocks[f'Close.ll{n}'] = stocks['Close']/a
 stocks = stocks.copy()
 del a
 
-
+#8 - Feature Engineer 10 - Standard Deviation. This is the one causing probs. std doesnt work with NAs
+for n in range(2,40):
+    stocks[f'Close.sd{n}'] = stocks.groupby('Ticker')['Close'].rolling(n).std().reset_index()['Close']
+stocks = stocks.copy()
 
 
 '''
-Resume from here
+I'm up to here. Saved as per below, can load from the link below
+'''
+#SAVE/LOAD CHECKPOINT
+#stocks.to_parquet(stocks_path_parquet, index = False, compression='gzip')
+stocks = pd.read_parquet(stocks_path_parquet)
 
 '''
-#9 - Feature Engineer 9 - OHLC attributes over n lags
-for n in range(1,201):
-    df[f'Close.tolow{n}'] = df['Close']/df['Low'].rolling(n).min()
-    df[f'Close.toHigh{n}'] = df['Close']/df['High'].rolling(n).max()
-    df[f'Close.toOpen{n}'] = df['Close']/df['Open'].shift(n)
-df = df.copy()
-#10 - Feature Engineer 10 - Standard Deviation. This is the one causing probs. std doesnt work with NAs
-for n in range(2,201):
-    df[f'Close.sd{n}'] = df['Close'].rolling(n).std()
-    #df[f'Close.sd{n}'] = df['Close'].rolling(n).apply(lambda x: x.std(skipna=True))/df['Close']
-df = df.copy()
+'''
+
 #11 - Feature Engineer 11 - Gaps
 for n in range(1, 201):
     df[f'Gap.lag{n}'] = df['Close'].shift(n+1)-df['Open'].shift(n)/df['Close']
