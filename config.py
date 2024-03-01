@@ -1,3 +1,6 @@
+##############################################################################
+# Data Config
+
 #Keys
 fred_key = '378bdfc0c483b3259c41cecde2ae2f0f'
 
@@ -8,6 +11,7 @@ stocks_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w
 stocks_path_parquet = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.parquet.gzip"
 macro_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/macros1w.csv"
 etf_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/etfs1w.csv"
+final_data_noTA_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/final_data_noTA.parquet.gzip"
 
 #Lists
 fred_list = ['MCOILWTICO', 'WCOILBRENTEU', 'UNRATE', 'FF', 'PCE', 'FYFSGDA188S', 'GDP',
@@ -17,3 +21,13 @@ fred_list = ['MCOILWTICO', 'WCOILBRENTEU', 'UNRATE', 'FF', 'PCE', 'FYFSGDA188S',
               'CEU4200000008', 'PI', 'REALLNNSA', 'MVPHGFD027MNFRBDAL']
 
 etf_list = ['^GSPC', 'XLE', 'XLI', 'XLB', 'XLY', 'XLP', 'XLV', 'XLF','XLU']
+
+##############################################################################
+# Model Config
+
+
+
+##############################################################################
+
+
+

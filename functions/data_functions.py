@@ -5,10 +5,6 @@ import yfinance as yf
 from fredapi import Fred
 import pandas_ta as ta
 from config import *
-
-def tester():
-    return np.mean([2,4])
-    
     
 def make_ticker_list():
     constituents = pd.read_csv(constituents_path)
@@ -137,3 +133,96 @@ def get_macro_df(dates_list, stocks):
 
     #So it seems XLE, XLI, XLB, XLY, XLP, XLV, XLF and XLU might be the most useful
     '''
+
+def make_etf_data(interval = "1wk"):
+    # First we download the various etfs and index histories
+    etf_df = yf.download(etf_list, period="max", interval = interval, threads = 'True')
+    # reshape data and add a column for the change that week
+    etf_df = etf_df.stack().reset_index()
+    etf_df['change'] = etf_df['Close']/etf_df['Open']
+    #filter to only dates in our stocks data
+    dates_list = stocks['Date'].drop_duplicates()
+    dates_list = pd.to_datetime(dates_list) #master date list of all the dates in the stocks df, as before
+    etf_df = etf_df.merge(dates_list.rename('Date'), how = 'left', on = 'Date')
+
+    #above works, but has outliers such as infs, which need replacing with 0s,
+    #and nans which also need replacing with 0s
+    etf_df = etf_df.fillna(0)
+    etf_df = etf_df.replace([np.inf, -np.inf], 0)
+    return df
+
+    
+def engineer_basic_features(stocks):
+    #1  - Feature Engineering - Lags
+    for n in range(1,40):
+        stocks[f'Close.lag{n}'] = stocks.groupby('Ticker')['Close'].shift(n)
+    stocks = stocks.copy()
+    #2- Feature Engineer 2 - Changes(normalised)
+    for n in range(1,40):
+        stocks[f'Close.change{n}'] = stocks['Close']/stocks[f'Close.lag{n}']
+    stocks = stocks.copy()
+    #3 - Feature Engineer 3 - Range (normalised)
+    for n in range(1,40):
+        a =  stocks.groupby('Ticker')['High'].rolling(n).max().reset_index()['High']
+        b = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index()['Low']
+        stocks[f'Close.range{n}'] = (a-b)/stocks['Close']
+    del a, b
+    stocks = stocks.copy()
+    #4 - Feature Engineer 4 - Distance from Low(normalised)
+    for n in range(1,40):
+        stocks[f'Low.tolow{n}']= stocks.groupby('Ticker').apply(lambda x: x['Low']/x['Low'].shift(n), include_groups=False).reset_index()['Low']
+    stocks = stocks.copy()
+    #5 - Feature Engineer 5 - Distance from High (normalised)
+    for n in range(1,40):
+        stocks[f'High.toHigh{n}']= stocks.groupby('Ticker').apply(lambda x: x['High']/x['High'].shift(n), include_groups=False).reset_index()['High']
+    stocks = stocks.copy()
+
+    #6 - Feature Engineer 7 - Distance from Highest High
+    for n in range(1,40):
+        a = stocks.groupby('Ticker')['High'].rolling(n).max().reset_index()['High']
+        stocks[f'Close.hh{n}'] = stocks['Close']/a
+    stocks = stocks.copy()
+    del a
+    #7 - Feature Engineer 8 - Distance from Lowest Low
+    for n in range(1,40):
+        a = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index()['Low']
+        stocks[f'Close.ll{n}'] = stocks['Close']/a
+    stocks = stocks.copy()
+    del a
+
+    #8 - Feature Engineer 10 - Standard Deviation. This is the one causing probs. std doesnt work with NAs
+    for n in range(2,40):
+        stocks[f'Close.sd{n}'] = stocks.groupby('Ticker')['Close'].rolling(n).std().reset_index()['Close']
+    stocks = stocks.copy()
+
+    #9 - Date information
+    stocks['Date'] = pd.to_datetime(stocks['Date'])
+    stocks['DayofWeek'] = stocks['Date'].dt.dayofweek
+    stocks['Month'] = stocks['Date'].dt.month
+
+
+    #10 - Feature Engineer 10 - normalised value for previous Gap,
+    a = stocks.groupby('Ticker')['Close'].shift(1).reset_index()['Close']
+    stocks['Last.Gap'] = (stocks['Open']- a)/stocks['Open']
+    del a
+    
+    return stocks
+
+
+def add_target(stocks):
+    nxtopn = stocks.groupby('Ticker')['Open'].shift(-1).reset_index()['Open']
+    nxtcls = stocks.groupby('Ticker')['Close'].shift(-1).reset_index()['Close']
+    stocks['y'] = (nxtcls - nxtopn)/nxtcls
+    del nxtcls
+    del nxtopn
+    return stocks
+
+def join_files(stocks, etf_df, macro_df):
+    #convert date columns to the dame dtype
+    stocks['Date'] = pd.to_datetime(stocks['Date'])
+    etf_df['Date'] = pd.to_datetime(etf_df['Date'])
+    macro_df['Date'] = pd.to_datetime(macro_df['Date'])
+    #merge
+    df = stocks.merge(etf_df, on='Date', how='left')
+    df = df.merge(macro_df, on = 'Date', how = 'left')
+    return df
