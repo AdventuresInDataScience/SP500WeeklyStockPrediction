@@ -18,14 +18,23 @@ def randomsplit(X, Y, test_frac = 0.2, seed = 7):
     return X_train, X_test, y_train, y_test
     
 
-      
-
-#%% 
 #Split into train and test groups. For convenience, the train df is called df, test df is called test_df
 def timesplit(df, test_frac = 0.2):
     length = df.shape[0]
     cutoff = int(length * (1 - test_frac))
     return (df.iloc[0:cutoff], df.iloc[cutoff:length])
 
-df, df_test = timesplit(df)
+
+#Onehot encoding is slightly different. We have to make a one-hot array, then append it to the dataframe, then drop the original value. This is easier with pd.get_dummies
+def one_hot_encode(df, column_list):
+    for column in column_list:
+        tempdf = pd.get_dummies(df[column], prefix=column)
+        df = pd.merge(
+            left=df,
+            right=tempdf,
+            left_index=True,
+            right_index=True,
+        )
+        df = df.drop(columns=column)
+    return df
 

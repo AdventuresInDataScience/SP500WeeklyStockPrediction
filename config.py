@@ -24,10 +24,46 @@ etf_list = ['^GSPC', 'XLE', 'XLI', 'XLB', 'XLY', 'XLP', 'XLV', 'XLF','XLU']
 
 ##############################################################################
 # Model Config
+# Variables that need one hot encoding
+OHE_list = ['sector', 'industry', 'DayofWeek', 'Month']
+scaler_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
 
-
-
+model_dictionary = {}
 ##############################################################################
 
 
+'''
+random forest
+ridge
+XBnet
 
+pip install mapie
+https://github.com/scikit-learn-contrib/MAPIE
+
+pip install --upgrade git+https://github.com/tusharsarkar3/XBNet.git
+https://github.com/tusharsarkar3/XBNet/blob/master/XBNet/models.py
+# Wheel build error - C++ 14
+
+pip install --upgrade linear-tree
+https://github.com/cerlymarco/linear-tree/blob/main/notebooks/README.md
+
+pip install gpboost -U
+https://gpboost.readthedocs.io/en/latest/pythonapi/gpboost.GPBoostRegressor.html#gpboost.GPBoostRegressor
+
+pip install -U KTBoost
+https://github.com/fabsig/KTBoost
+
+#this is snapboost
+pip install snapml
+https://snapml.readthedocs.io/en/latest/boosting_machines.html#boosting-machine-regressor
+
+pip install bartpy
+https://github.com/JakeColtman/bartpy
+#issue with deprecated sklearn vs scikit learn in requirements.txt
+
+pip install SMAC3
+pip install Cmake
+pip install wheel setuptools --upgrade
+# STILL NOT WORKING
+https://github.com/automl/SMAC3
+'''
