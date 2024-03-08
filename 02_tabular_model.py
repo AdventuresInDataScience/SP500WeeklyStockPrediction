@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import confusion_matrix, accuracy_score
-
+from hyperband import HyperbandSearchCV
 
 from joblib import dump, load
 wd = os.path.dirname(__file__) 
@@ -32,8 +32,8 @@ y = df['y']
 
 #%% - Split Data
 # time split
-X_train, X_test = timesplit(X)
-y_train, y_test = timesplit(y)
+X_train, X_test = timesplit(X, test_frac = 0.2)
+y_train, y_test = timesplit(y, test_frac = 0.2)
 
 # Random Split
 # X_train, X_test, y_train, y_test = randomsplit(X, Y, test_frac = 0.2, seed = 7)
@@ -47,3 +47,16 @@ X_test = ss.transform(X_test)
 
 #%% - Optimise Models and return stats
 
+model = RandomForestClassifier()
+param_dist = {
+    'max_depth': [3, None],
+    'max_features': sp_randint(1, 11),
+    'min_samples_split': sp_randint(2, 11),
+    'min_samples_leaf': sp_randint(1, 11)
+}
+
+search = HyperbandSearchCV(model, param_dist, 
+                           resource_param='n_estimators',
+                           scoring='roc_auc')
+search.fit(X, y)
+print(search.best_params_)
