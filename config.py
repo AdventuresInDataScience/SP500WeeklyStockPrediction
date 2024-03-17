@@ -40,32 +40,23 @@ from lightgbm import LGBMRegressor
 import lightgbm as lgb
 from sklearn.ensemble import RandomForestRegressor
 
-#these still need certain params updated eg lgbm, xgboost
+# Variables that need one hot encoding, and other paths
+OHE_list = ['sector', 'industry', 'DayofWeek', 'Month']
+scaler_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
+interim_optimisations_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/interim_optimisations.joblib"
+
+#model list
 ridge = RidgeCV()
 rf = RandomForestRegressor(n_jobs = 4)
 lf = LinearForestRegressor(Ridge())
 xgb = XGBRegressor()
 lgbm = LGBMRegressor()
-lgbml = lgb(linear_tree= True)
+lgbml = lgb
 gpb = GPBoostRegressor()
-model = KTBoost.BoostingRegressor(loss='ls')
+ktb = KTBoost.BoostingRegressor(loss='ls')
 snap = SnapboostRegressor()
-print()
 
-
-{'max_depth': [-1,5,10,15],
-    'learning_rate': [0.3, 0.1, 0.01],
-    'colsample_bytree' : [0.5,0.8, 1],
-    'subsample' : [0.5,0.8,1],
-    'reg_lambda': [1, 0.8, 0.5, 0.1, 0],
-    'reg_alpha': [1, 0.8, 0.5, 0.1, 0],
-    'n_estimators': [50, 100, 200]}
-
-
-# Variables that need one hot encoding
-OHE_list = ['sector', 'industry', 'DayofWeek', 'Month']
-scaler_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
-
+#model params lists
 model_param_list = [
     (ridge, {'cv': [5,10]}),
     (rf, {'max_depth': [10, 20, 30, None],
@@ -91,10 +82,28 @@ model_param_list = [
         'reg_lambda': [1, 0.8, 0.5, 0.1, 0],
         'reg_alpha': [1, 0.8, 0.5, 0.1, 0],
         'n_estimators': [50, 100, 200]}),
-    (),
-    (),
-    (),
-    ()]
+    (lgbml, {'objective': 'regression',
+        'metric': 'rmse',
+        'num_leaves': 30,
+        'learning_rate': 0.05,
+        'verbosity': -1}),
+    (gpb, {'boosting_type': ['gbdt', 'dart', 'goss', 'rf'],
+           'max_depth': [-1,10,20,30],
+           'learning_rate': [0.3, 0.1, 0.01],
+           'n_estimators': [50, 100, 200],
+           'colsample_bytree' : [0.5,0.8, 1],
+           'reg_lambda': [1, 0.8, 0.5, 0.1, 0],
+           'reg_alpha': [1, 0.8, 0.5, 0.1, 0]}),
+    (ktb, {'learning_rate': [0.3, 0.1, 0.01],
+           'colsample_bytree' : [0.5,0.8, 1],
+           'lambda_l2': [1, 0.8, 0.5, 0.1, 0],
+           'alpha': [1, 0.8, 0.5, 0.1, 0]}),
+    (snap, {'base_learner':['tree', 'kernel'],
+            'n_estimators': [50, 100, 200],
+            'learning_rate': [0.3, 0.1, 0.01],
+            'max_depth': [3,5,10,15],
+            'gamma': [0.5,0.7,1],
+            'kernel':["rbf", 'laplace', 'GW']})]
 
 '''
 #Light GBM linear trees uses an very odd implementation. I need to add this last
@@ -121,6 +130,10 @@ params = {
 model_linear = lgb.train(params, train_data_linear)
 model_normal = lgb.train(params, train_data_normal)
 
+
+
+#Early stopping rounds
+present in XGBoost, LGBM, GPBoost, snapml, 
 '''
 ##############################################################################
 
