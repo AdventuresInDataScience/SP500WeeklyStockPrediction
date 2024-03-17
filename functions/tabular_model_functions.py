@@ -15,6 +15,14 @@ from joblib import dump, load
 
 
 #functions
+#Split into train and test groups. For convenience, the train df is called df, test df is called test_df
+def timesplit(df, date_name = 'Date', test_frac = 0.2):
+    unique_dates = df[date_name].unique().reset_index(drop = True).sort_values()
+    length = unique_dates.shape[0] # number of unique dates
+    cutoff_number = int(length * (1 - test_frac))
+    cutoff_date = df[date_name].unique().loc[cutoff_number]
+    return (df[df[date_name] <= cutoff_date], df[df[date_name] > cutoff_date])
+
 
 def randomsplit(X, Y, test_frac = 0.2, seed = 7):
     X_train, X_test, y_train, y_test = train_test_split(X = X, y = y, test_size=test_frac, random_state=seed)
@@ -22,7 +30,11 @@ def randomsplit(X, Y, test_frac = 0.2, seed = 7):
     
 
 #Split into train and test groups. For convenience, the train df is called df, test df is called test_df
-def timesplit(df, test_frac = 0.2):
+def timesplit_old(df, test_frac = 0.2):
+    '''
+    Old timesplit function, which splits on sequential entries. 
+    Not ideal, because later years have more entries, so split is even by rows, but not by years/weeks
+    '''
     length = df.shape[0]
     cutoff = int(length * (1 - test_frac))
     return (df.iloc[0:cutoff], df.iloc[cutoff:length])

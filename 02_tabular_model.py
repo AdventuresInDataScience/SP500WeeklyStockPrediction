@@ -13,6 +13,7 @@ from sklearn.experimental import enable_halving_search_cv  # noqa
 from sklearn.model_selection import HalvingGridSearchCV
 from sklearn.decomposition import FactorAnalysis
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt 
 
 from joblib import dump, load
 wd = os.path.dirname(__file__) 
@@ -30,12 +31,16 @@ df = pd.read_parquet(final_data_noTA_path)
 #%% - One Hot Encode
 df = one_hot_encode(df, OHE_list)
 
-#%% - Make X and Y data
-X = df.drop(['Date', 'Ticker', 'y'], axis=1)
+#%% - Make initial X and Y data
+X = df.drop(['y'], axis=1)
 y = df['y']
 
 #%% - Split Data
-# time split
+# time split X. Keep 2 version, one with the data andd ticker(for later), and one without (for model fit)
+#original X data
+X_train_o, X_test_o = timesplit(X, test_frac = 0.2)
+#X data with unneeded cols removed
+X = df.drop(['Date', 'Ticker'], axis=1)
 X_train, X_test = timesplit(X, test_frac = 0.2)
 y_train, y_test = timesplit(y, test_frac = 0.2)
 
@@ -46,7 +51,7 @@ y_train, y_test = timesplit(y, test_frac = 0.2)
 ss = StandardScaler()
 X_train = ss.fit_transform(X_train)
 X_test = ss.transform(X_test)
-# dump(ss, scaler_model_path) # Save scaler model
+#dump(ss, scaler_model_path) # Save scaler model
 #load(scaler_model_path) # Load a previously saved scaler model
 
 #%% - PCA as an Alternative to Factor Analysis, which was not helpful
@@ -65,7 +70,8 @@ pca.fit(X_train) #fit model
 #apply transforms
 X_train = pca.transform(X_train)
 X_test = pca.transform(X_test)
-#dump(pca, 'pca.joblib') #save model
+#dump(pca, pca_model_path) #save model
+##load(pca_model_path) # Load a previously saved pca model
 
 gc.collect()
 #%% - Scratchpad
@@ -81,7 +87,7 @@ print('xgboost rmse:',rmse)
 data = pd.DataFrame(data = [y_test.values, y_pred]).T
 data.columns = ['test','pred']
 
-
+#Light GBM Model
 t0 = time.time()
 lgb = model_param_list[4][0]
 lgb.fit(X_train, y_train)
@@ -93,8 +99,26 @@ rmse = mean_squared_error(y_test, y_pred)**0.5
 print('lgbm rmse:', rmse)
 data = pd.DataFrame(data = [y_test.values, y_pred]).T
 data.columns = ['test','pred']
+dump(lgb, 'C:/Users/malha/Documents/model.joblib')
+#random forest is really  slow in comparison
 
-#random forest is really slow
+#Compare predictions, Year by Year
+#1. get results into a dataframe
+results = X_test_o[['Date', 'Ticker']].reset_index(drop = True)
+results['y'] = data['test']
+results['pred'] = data['pred']
+#2.groupby date, taking the mean of the top 10 results
+results = results.sort_values(by = ['Date','pred'], ascending = [True, False])
+summary = results[['Date','y', 'pred']].groupby('Date').apply(lambda x: x.head(10).mean())
+summary['return'] = summary['y'] + 1 - 0.0005 #covers daily funded bet and spreads
+summary['cum_return'] = summary['return'].cumprod()
+
+yearly = summary.copy()
+yearly['YM'] = pd.to_datetime(yearly['Date'].dt.year.astype(str) + yearly['Date'].dt.month.astype(str), format='%Y%m')
+yearly = yearly.reset_index(drop = True)
+yearly = yearly.groupby('YM')['return'].apply(lambda x: x.cumprod()).reset_index().drop('level_1', axis=1)
+yearly = yearly.groupby('YM').apply(lambda x: x.tail(1)).reset_index(drop = True)
+plt.plot(yearly['YM'], yearly['return'])
 #%% - Optimise Models and return stats
 final_models = optimise_tabuler_model(X_train, y_train, X_test, y_test, model_param_list)
 optimisations = pd.DataFrame(final_models, columns=['model', 'best_params', 'rmse'])

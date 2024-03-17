@@ -44,6 +44,9 @@ from sklearn.ensemble import RandomForestRegressor
 OHE_list = ['sector', 'industry', 'DayofWeek', 'Month']
 scaler_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
 interim_optimisations_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/interim_optimisations.joblib"
+pca_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/pca_model.joblib"
+model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/model.joblib"
+
 
 #model list
 ridge = RidgeCV()
