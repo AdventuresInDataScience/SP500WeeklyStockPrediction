@@ -1,10 +1,7 @@
 '''
 I need to:
-    1. Check the stocks groupbys in the feature selection, to make sure its working properly
-    2. Add relevant vars in for the etf code. We have 'changes' but we also need previous changes,
-    up to 4 periods, and prob range up to 4 periods, as a way to gauge variance. 
-    3. Double check the macro code, esp to make sure no bias from including data 
-    which would not be availible at the time
+    1. Macro and etf are saved. Stocks is saved from panel 1 only ie before any cleaning etc 
+    2. Still need to check all the feature engineering is correct
 '''
 
 
@@ -116,49 +113,10 @@ macro_df = macro_df.fillna(0)
 #inflation = pd.read_csv("C:\Users\malha\Documents\Projects\All SP500 stocks\us_inflation.csv")
 
 etf_df = make_etf_data(stocks, interval = "1wk")
-etf_df['Ticker'] = etf_df['Ticker'].str.replace('^','')
-wide = etf_df.pivot(index = 'Date', columns='Ticker', values=['Close','change']).reset_index(drop=False)
-wide.columns = ['_'.join(col).strip() for col in wide.columns.values]
-
-
 
 #SAVE/LOAD CHECKPOINT
 #etf_df.to_csv(etf_path, index = False)
 #etf_df = pd.read_csv(etf_path)
-
-
-#%% - SCRATCHPAD
-
-
-
-
-# First we download the various etfs and index histories
-etf_df = yf.download(etf_list, period="max", interval = "1wk", threads = 'True')
-    # reshape data and add a column for the change that week
-etf_df = etf_df.stack().reset_index()
-etf_df['change'] = etf_df['Close']/etf_df['Open']
-    #filter to only dates in our stocks data
-dates_list = stocks['Date'].drop_duplicates()
-dates_list = pd.to_datetime(dates_list) #master date list of all the dates in the stocks df, as before
-etf_df = etf_df.merge(dates_list.rename('Date'), how = 'left', on = 'Date')
-
-    #above works, but has outliers such as infs, which need replacing with 0s,
-    #and nans which also need replacing with 0s
-etf_df = etf_df.fillna(0)
-etf_df = etf_df.replace([np.inf, -np.inf], 0)
-
-
-
-
-
-
-
-
-#%%
-
-
-
-
 
 #%% Add Basic features
 stocks = engineer_basic_features(stocks)

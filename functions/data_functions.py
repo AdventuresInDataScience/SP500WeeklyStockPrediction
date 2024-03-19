@@ -107,7 +107,8 @@ def get_macro_df(fred, dates_list, stocks, fred_list):
         #forward fill NAs, and impute the rest with 0s
     macro_df = macro_df.ffill()
     macro_df = macro_df.fillna(0)
-        return macro_df
+    return macro_df
+    
     '''
     #%% Comments on below, for context
     #fred.search('cpiau').T # this one's not working atm
@@ -145,10 +146,35 @@ def make_etf_data(stocks, interval = "1wk"):
     dates_list = stocks['Date'].drop_duplicates()
     dates_list = pd.to_datetime(dates_list) #master date list of all the dates in the stocks df, as before
     etf_df = etf_df.merge(dates_list.rename('Date'), how = 'left', on = 'Date')
-    # pivot wider, so each etf is its own set of columns
     etf_df['Ticker'] = etf_df['Ticker'].str.replace('^','')
-    wide = etf_df.pivot(index = 'Date', columns='Ticker', values=['Close','change']).reset_index(drop=False)
-    wide.columns = ['_'.join(col).strip() for col in wide.columns.values]
+    # add features
+    #a. changes
+    etf_df['change1'] = etf_df.groupby(['Ticker'])['Close'].shift(1)
+    etf_df['change1'] = etf_df['Close']/etf_df['change1']
+    etf_df['change2'] = etf_df.groupby(['Ticker'])['Close'].shift(2)
+    etf_df['change2'] = etf_df['Close']/etf_df['change2']
+    etf_df['change3'] = etf_df.groupby(['Ticker'])['Close'].shift(3)
+    etf_df['change3'] = etf_df['Close']/etf_df['change3']
+    etf_df['change4'] = etf_df.groupby(['Ticker'])['Close'].shift(4)
+    etf_df['change4'] = etf_df['Close']/etf_df['change4']
+    #b. 
+    etf_df['h'] = etf_df.groupby(['Ticker'])['High'].rolling(1).max().reset_index(0,drop=True)
+    etf_df['l'] = etf_df.groupby(['Ticker'])['Low'].rolling(1).min().reset_index(0,drop=True)
+    etf_df['range1'] = (etf_df['h']-etf_df['l'])/etf_df['Close']
+    etf_df['h'] = etf_df.groupby(['Ticker'])['High'].rolling(2).max().reset_index(0,drop=True)
+    etf_df['l'] = etf_df.groupby(['Ticker'])['Low'].rolling(2).min().reset_index(0,drop=True)
+    etf_df['range2'] = (etf_df['h']-etf_df['l'])/etf_df['Close']
+    etf_df['h'] = etf_df.groupby(['Ticker'])['High'].rolling(3).max().reset_index(0,drop=True)
+    etf_df['l'] = etf_df.groupby(['Ticker'])['Low'].rolling(3).min().reset_index(0,drop=True)
+    etf_df['range3'] = (etf_df['h']-etf_df['l'])/etf_df['Close']
+    etf_df['h'] = etf_df.groupby(['Ticker'])['High'].rolling(4).max().reset_index(0,drop=True)
+    etf_df['l'] = etf_df.groupby(['Ticker'])['Low'].rolling(4).min().reset_index(0,drop=True)
+    etf_df['range4'] = (etf_df['h']-etf_df['l'])/etf_df['Close']
+    
+    # pivot wider, so each etf is its own set of columns
+    etf_df = etf_df.pivot(index = 'Date', columns='Ticker', 
+                          values=['change', 'change', 'change', 'change', 'range1', 'range2', 'range3', 'range4']).reset_index(drop=False)
+    etf_df.columns = ['_'.join(col).strip() for col in etf_df.columns.values]
     #above works, but has outliers such as infs, which need replacing with 0s,
     #and nans which also need replacing with 0s
     etf_df = etf_df.fillna(0)
