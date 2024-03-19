@@ -17,10 +17,10 @@ def make_ticker_list():
     for x in constituents:
         ticker_list = ticker_list + x + " "
     del x
-    return ticker_list
+    return ticker_list, constituents
 
 
-def get_yahoo_data(interval = "1wk"):
+def get_yahoo_data(ticker_list, constituents, interval = "1wk"):
     df2= yf.download(ticker_list, period="max", interval = interval, threads = 'True')
     df = df2.stack()
     df = df.reset_index()
@@ -44,18 +44,19 @@ def get_yahoo_data(interval = "1wk"):
     df3 = df.merge(df2, how='left', on='Ticker')
     return df3
 
-def clean_stocks(stocks):
-    #remove those stocks where the open is 0, this clearly wrong
+def clean_stocks(stocks, remove_1s):
+    #remove those stocks where the open is 0, this is clearly wrong
     stocks = stocks[stocks['Open'] != 0]
     #trim outliers below the 0.4% percentile, and above 99.6%
     stocks = stocks[stocks['Close']/stocks['Open'] <= np.percentile(stocks['Close']/stocks['Open'], 99.6)]
     stocks = stocks[stocks['Close']/stocks['Open'] >= np.percentile(stocks['Close']/stocks['Open'], 0.4)]
     #There's a wierd number of values where open and close are teh same ie change is 0. 
-    #We also remove this, at its probably an error
-    stocks = stocks[stocks['Close']/stocks['Open'] != 1]
+    if remove_1s == True:
+        #We also remove this, at its probably an error
+        stocks = stocks[stocks['Close']/stocks['Open'] != 1]
     return stocks
 
-def get_macro_df(dates_list, stocks):
+def get_macro_df(fred, dates_list, stocks, fred_list):
     #skeleton df with all the stock dates. macros are joined to this one by one
     macro_df = pd.DataFrame({'Date':dates_list})
     macro_df['Date'] = pd.to_datetime(macro_df['Date'])
@@ -104,8 +105,8 @@ def get_macro_df(dates_list, stocks):
         #merge data into the skeleton, to build a master macro table
         macro_df = macro_df.merge(data, how='outer', on='Date')
         #forward fill NAs, and impute the rest with 0s
-        macro_df = macro_df.ffill()
-        macro_df = macro_df.fillna(0)
+    macro_df = macro_df.ffill()
+    macro_df = macro_df.fillna(0)
         return macro_df
     '''
     #%% Comments on below, for context
@@ -134,7 +135,7 @@ def get_macro_df(dates_list, stocks):
     #So it seems XLE, XLI, XLB, XLY, XLP, XLV, XLF and XLU might be the most useful
     '''
 
-def make_etf_data(interval = "1wk"):
+def make_etf_data(stocks, interval = "1wk"):
     # First we download the various etfs and index histories
     etf_df = yf.download(etf_list, period="max", interval = interval, threads = 'True')
     # reshape data and add a column for the change that week
@@ -144,12 +145,15 @@ def make_etf_data(interval = "1wk"):
     dates_list = stocks['Date'].drop_duplicates()
     dates_list = pd.to_datetime(dates_list) #master date list of all the dates in the stocks df, as before
     etf_df = etf_df.merge(dates_list.rename('Date'), how = 'left', on = 'Date')
-
+    # pivot wider, so each etf is its own set of columns
+    etf_df['Ticker'] = etf_df['Ticker'].str.replace('^','')
+    wide = etf_df.pivot(index = 'Date', columns='Ticker', values=['Close','change']).reset_index(drop=False)
+    wide.columns = ['_'.join(col).strip() for col in wide.columns.values]
     #above works, but has outliers such as infs, which need replacing with 0s,
     #and nans which also need replacing with 0s
     etf_df = etf_df.fillna(0)
     etf_df = etf_df.replace([np.inf, -np.inf], 0)
-    return df
+    return etf_df
 
     
 def engineer_basic_features(stocks):

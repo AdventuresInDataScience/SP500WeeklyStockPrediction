@@ -31,21 +31,24 @@ df = pd.read_parquet(final_data_noTA_path)
 #%% - One Hot Encode
 df = one_hot_encode(df, OHE_list)
 
-#%% - Make initial X and Y data
-X = df.drop(['y'], axis=1)
-y = df['y']
-
 #%% - Split Data
-# time split X. Keep 2 version, one with the data andd ticker(for later), and one without (for model fit)
+# time split X. Keep 2 version, one with the data and ticker(for later), and one without (for model fit)
 #original X data
-X_train_o, X_test_o = timesplit(X, test_frac = 0.2)
-#X data with unneeded cols removed
-X = df.drop(['Date', 'Ticker'], axis=1)
-X_train, X_test = timesplit(X, test_frac = 0.2)
-y_train, y_test = timesplit(y, test_frac = 0.2)
+df_train, df_test = timesplit(df, test_frac = 0.2)
 
 # Random Split
 # X_train, X_test, y_train, y_test = randomsplit(X, Y, test_frac = 0.2, seed = 7)
+
+#%% - remove y values of 1 fom the Train data only
+df_train = df_train[df_train['Close']/df_train['Open'] != 1]
+
+#%% - Make X and Y data
+X_train = df_train.drop(['Date', 'Ticker'], axis=1)
+X_test = df_test.drop(['Date', 'Ticker'], axis=1)
+
+y_train = df_train['y']
+y_test = df_test['y']
+
 
 #%% - Scale Data
 ss = StandardScaler()

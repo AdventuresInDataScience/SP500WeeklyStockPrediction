@@ -1,3 +1,13 @@
+'''
+I need to:
+    1. Check the stocks groupbys in the feature selection, to make sure its working properly
+    2. Add relevant vars in for the etf code. We have 'changes' but we also need previous changes,
+    up to 4 periods, and prob range up to 4 periods, as a way to gauge variance. 
+    3. Double check the macro code, esp to make sure no bias from including data 
+    which would not be availible at the time
+'''
+
+
 #%% 0. Imports and config
 #update system path
 import os
@@ -23,40 +33,132 @@ from functions.data_functions import *
 fred = Fred(api_key=fred_key)
 
 #make list of constituents
-ticker_list = make_ticker_list()
+ticker_list, constituents = make_ticker_list()
 
 #get weekly stock data
-stocks = get_yahoo_data(interval = "1wk")
+stocks = get_yahoo_data(ticker_list, constituents, interval = "1wk")
 
 #SAVE/LOAD CHECKPOINT
 #stocks.to_csv(stocks_path, index = False)
-stocks = pd.read_csv(stocks_path)
+#stocks = pd.read_csv(stocks_path)
 
 #%% Basic Data Cleaning
-stocks = clean_stocks(stocks)
+stocks = clean_stocks(stocks, remove_1s = False)
 
 #SAVE/LOAD CHECKPOINT
 #stocks.to_parquet(stocks_path_parquet, index = False, compression='gzip')
-stocks = pd.read_parquet(stocks_path_parquet)
+#stocks = pd.read_parquet(stocks_path_parquet)
 
 #%% 2a. Download Macro Data and engineer features
-#First we make a master date list,which is all the dates in the stocks df
+# The function for this doesn't work. So for now, I'm just pasting in the loop
 dates_list = stocks['Date'].unique()
+#skeleton df with all the stock dates. macros are joined to this one by one
+macro_df = pd.DataFrame({'Date':dates_list})
+macro_df['Date'] = pd.to_datetime(macro_df['Date'])
 
-macro_df = get_macro_df(dates_list, stocks)
+#get data for all columns, engineer features, synch up dates and join together
+for macro in fred_list:
+    #get data from api
+    data = fred.get_series(macro)
+    #Test stationarity
+    stationary = adfuller(data.dropna().values)[1] < 0.05
+        #convert to pandas df
+    data = pd.DataFrame({'Date':data.index, macro:data.values})
+    
+    #Engineer those vars that are common for stationary and non-stationary series
+    # frac difference
+    data[f'{macro}_fd'] = data[macro]/data[macro].shift(1)
+    
+    # lags of the diffs
+    data[f'{macro}_fd_1'] = data[f'{macro}_fd'].shift(1)
+    data[f'{macro}_fd_2'] = data[f'{macro}_fd'].shift(2)
+    data[f'{macro}_fd_3'] = data[f'{macro}_fd'].shift(3)
+    data[f'{macro}_fd_4'] = data[f'{macro}_fd'].shift(4)
+    
+    # lags of the levels
+    data[f'{macro}_1'] = data[f'{macro}'].shift(1)
+    data[f'{macro}_2'] = data[f'{macro}'].shift(2)
+    data[f'{macro}_3'] = data[f'{macro}'].shift(3)
+    data[f'{macro}_4'] = data[f'{macro}'].shift(4)
+    
+    # change over x rows
+    data[f'{macro}_ch_1'] = data[f'{macro}_1']/data[f'{macro}_2']
+    data[f'{macro}_ch_2'] = data[f'{macro}_1']/data[f'{macro}_3']
+    data[f'{macro}_ch_3'] = data[f'{macro}_1']/data[f'{macro}_4']
+    data[f'{macro}_ch_4'] = data[f'{macro}_1']/data[f'{macro}'].shift(5)
+    
+    #Different engineering for if data is stationary or not
+    if stationary:
+        # Delete the current level and frac diff, as there is approx a 1 period delay in getting updated data on FRED
+        # We want to eliminate any possible look forward bias
+        data = data.drop([macro, f'{macro}_fd'], axis = 1)
+        
+    elif stationary == False:
+        # Delete ALL the levels as they are not stationary. Also delete the current frac diff, as there is approx a 1 period delay in getting updated data on FRED
+        data = data.drop([macro, f'{macro}_fd', f'{macro}_1', f'{macro}_2', f'{macro}_3', f'{macro}_4'], axis = 1)
+        
+    #merge data into the skeleton, to build a master macro table
+    macro_df = macro_df.merge(data, how='outer', on='Date')
+    #forward fill NAs, and impute the rest with 0s
+macro_df = macro_df.ffill()
+macro_df = macro_df.fillna(0)
 
-#SAVE/LOAD CHECKPOINT
-#macro_df.to_csv(macro_path, index = False)
-macro_df = pd.read_csv(macro_path)
+# #First we make a master date list,which is all the dates in the stocks df
+# dates_list = stocks['Date'].drop_duplicates()
 
-#%% Indexes linked to stocks
+# macro_df = get_macro_df(fred, dates_list, stocks, fred_list)
+
+# #SAVE/LOAD CHECKPOINT
+# #macro_df.to_csv(macro_path, index = False)
+# #macro_df = pd.read_csv(macro_path)
+
+#%% 2b Indexes linked to stocks
 #inflation = pd.read_csv("C:\Users\malha\Documents\Projects\All SP500 stocks\us_inflation.csv")
 
-etf_df = make_etf_data(interval = "1wk")
+etf_df = make_etf_data(stocks, interval = "1wk")
+etf_df['Ticker'] = etf_df['Ticker'].str.replace('^','')
+wide = etf_df.pivot(index = 'Date', columns='Ticker', values=['Close','change']).reset_index(drop=False)
+wide.columns = ['_'.join(col).strip() for col in wide.columns.values]
+
+
 
 #SAVE/LOAD CHECKPOINT
 #etf_df.to_csv(etf_path, index = False)
-etf_df = pd.read_csv(etf_path)
+#etf_df = pd.read_csv(etf_path)
+
+
+#%% - SCRATCHPAD
+
+
+
+
+# First we download the various etfs and index histories
+etf_df = yf.download(etf_list, period="max", interval = "1wk", threads = 'True')
+    # reshape data and add a column for the change that week
+etf_df = etf_df.stack().reset_index()
+etf_df['change'] = etf_df['Close']/etf_df['Open']
+    #filter to only dates in our stocks data
+dates_list = stocks['Date'].drop_duplicates()
+dates_list = pd.to_datetime(dates_list) #master date list of all the dates in the stocks df, as before
+etf_df = etf_df.merge(dates_list.rename('Date'), how = 'left', on = 'Date')
+
+    #above works, but has outliers such as infs, which need replacing with 0s,
+    #and nans which also need replacing with 0s
+etf_df = etf_df.fillna(0)
+etf_df = etf_df.replace([np.inf, -np.inf], 0)
+
+
+
+
+
+
+
+
+#%%
+
+
+
+
 
 #%% Add Basic features
 stocks = engineer_basic_features(stocks)
@@ -80,5 +182,5 @@ df = join_files(stocks, etf_df, macro_df)
 df = df.dropna().reset_index(drop = True)
 
 #SAVE/LOAD CHECKPOINT
-#df.to_parquet(final_data_noTA_path, index = False, compression='gzip')
+df.to_parquet(final_data_noTA_path, index = False, compression='gzip')
 #df = pd.read_parquet(final_data_noTA_path)

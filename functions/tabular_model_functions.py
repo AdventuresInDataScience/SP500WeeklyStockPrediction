@@ -17,10 +17,10 @@ from joblib import dump, load
 #functions
 #Split into train and test groups. For convenience, the train df is called df, test df is called test_df
 def timesplit(df, date_name = 'Date', test_frac = 0.2):
-    unique_dates = df[date_name].unique().reset_index(drop = True).sort_values()
+    unique_dates = pd.Series(df[date_name].sort_values().unique())
     length = unique_dates.shape[0] # number of unique dates
     cutoff_number = int(length * (1 - test_frac))
-    cutoff_date = df[date_name].unique().loc[cutoff_number]
+    cutoff_date = unique_dates.loc[cutoff_number]
     return (df[df[date_name] <= cutoff_date], df[df[date_name] > cutoff_date])
 
 
