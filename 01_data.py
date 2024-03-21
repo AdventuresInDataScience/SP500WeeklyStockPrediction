@@ -100,6 +100,23 @@ for macro in fred_list:
 macro_df = macro_df.ffill()
 macro_df = macro_df.fillna(0)
 
+
+
+
+
+
+
+
+
+
+
+#1  - Feature Engineering - Lags
+
+
+
+
+
+
 # #First we make a master date list,which is all the dates in the stocks df
 # dates_list = stocks['Date'].drop_duplicates()
 
@@ -113,6 +130,7 @@ macro_df = macro_df.fillna(0)
 #inflation = pd.read_csv("C:\Users\malha\Documents\Projects\All SP500 stocks\us_inflation.csv")
 
 etf_df = make_etf_data(stocks, interval = "1wk")
+etf_df = etf_df.rename(columns={"Date_": "Date"})
 
 #SAVE/LOAD CHECKPOINT
 #etf_df.to_csv(etf_path, index = False)
@@ -120,7 +138,7 @@ etf_df = make_etf_data(stocks, interval = "1wk")
 
 #%% Add Basic features
 stocks = engineer_basic_features(stocks)
-
+stocks['change'] = stocks['Close']/stocks['Open']
 # I'm leaving All the technical Indicators for now
 # This can be a seperate thing if needed
 
@@ -136,6 +154,7 @@ stocks = stocks.drop(['Adj Close', 'Open', 'High', 'Low', 'Close', 'Volume'], ax
 #stocks = pd.read_parquet(stocks_path_parquet)
 
 #%% Join all data together and drop NAs
+etf_df = etf_df.rename(columns={"Date_": "Date"})
 df = join_files(stocks, etf_df, macro_df)
 df = df.dropna().reset_index(drop = True)
 

@@ -1,3 +1,10 @@
+'''
+Need to fix the 'remove y values of 1' block.
+The close and open are missing, so I need to filter the changes which are zero
+
+'''
+
+
 #%% 0. Imports and config
 #update system path
 import os
@@ -39,12 +46,12 @@ df_train, df_test = timesplit(df, test_frac = 0.2)
 # Random Split
 # X_train, X_test, y_train, y_test = randomsplit(X, Y, test_frac = 0.2, seed = 7)
 
-#%% - remove y values of 1 fom the Train data only
-df_train = df_train[df_train['Close']/df_train['Open'] != 1]
+#%% - remove y values of 1 from the Train data only
+df_train = df_train[df_train['change'] != 1]
 
 #%% - Make X and Y data
-X_train = df_train.drop(['Date', 'Ticker'], axis=1)
-X_test = df_test.drop(['Date', 'Ticker'], axis=1)
+X_train = df_train.drop(['Date', 'Ticker', 'y'], axis=1)
+X_test = df_test.drop(['Date', 'Ticker', 'y'], axis=1)
 
 y_train = df_train['y']
 y_test = df_test['y']
@@ -65,9 +72,9 @@ X_test = ss.transform(X_test)
 # evrsum = evr.cumsum()
 
 #2. Rebuild using the right number of vars only
-#95% = 243
-#99% = 321
-pca = PCA(n_components=243)
+#95% = 221
+#99% = 308
+pca = PCA(n_components=308)
 pca.fit(X_train) #fit model
 
 #apply transforms
@@ -107,7 +114,7 @@ dump(lgb, 'C:/Users/malha/Documents/model.joblib')
 
 #Compare predictions, Year by Year
 #1. get results into a dataframe
-results = X_test_o[['Date', 'Ticker']].reset_index(drop = True)
+results = df_test[['Date', 'Ticker']].reset_index(drop = True)
 results['y'] = data['test']
 results['pred'] = data['pred']
 #2.groupby date, taking the mean of the top 10 results
@@ -121,7 +128,11 @@ yearly['YM'] = pd.to_datetime(yearly['Date'].dt.year.astype(str) + yearly['Date'
 yearly = yearly.reset_index(drop = True)
 yearly = yearly.groupby('YM')['return'].apply(lambda x: x.cumprod()).reset_index().drop('level_1', axis=1)
 yearly = yearly.groupby('YM').apply(lambda x: x.tail(1)).reset_index(drop = True)
-plt.plot(yearly['YM'], yearly['return'])
+plt.plot(yearly['YM'], yearly['return'].cumprod())
+
+
+feature_imp = pd.DataFrame({'Value':lgb.feature_importances_,'Feature':df_test.drop(['Date', 'Ticker', 'y'], axis=1).columns})
+
 #%% - Optimise Models and return stats
 final_models = optimise_tabuler_model(X_train, y_train, X_test, y_test, model_param_list)
 optimisations = pd.DataFrame(final_models, columns=['model', 'best_params', 'rmse'])

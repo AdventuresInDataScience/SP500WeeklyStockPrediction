@@ -193,36 +193,36 @@ def engineer_basic_features(stocks):
     stocks = stocks.copy()
     #3 - Feature Engineer 3 - Range (normalised)
     for n in range(1,40):
-        a =  stocks.groupby('Ticker')['High'].rolling(n).max().reset_index()['High']
-        b = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index()['Low']
+        a =  stocks.groupby('Ticker')['High'].rolling(n).max().reset_index(0,drop=True)
+        b = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index(0,drop=True)
         stocks[f'Close.range{n}'] = (a-b)/stocks['Close']
     del a, b
     stocks = stocks.copy()
     #4 - Feature Engineer 4 - Distance from Low(normalised)
     for n in range(1,40):
-        stocks[f'Low.tolow{n}']= stocks.groupby('Ticker').apply(lambda x: x['Low']/x['Low'].shift(n), include_groups=False).reset_index()['Low']
+        stocks[f'Low.tolow{n}']= stocks.groupby('Ticker').apply(lambda x: x['Low']/x['Low'].shift(n), include_groups=False).reset_index(0,drop=True)
     stocks = stocks.copy()
     #5 - Feature Engineer 5 - Distance from High (normalised)
     for n in range(1,40):
-        stocks[f'High.toHigh{n}']= stocks.groupby('Ticker').apply(lambda x: x['High']/x['High'].shift(n), include_groups=False).reset_index()['High']
+        stocks[f'High.toHigh{n}']= stocks.groupby('Ticker').apply(lambda x: x['High']/x['High'].shift(n), include_groups=False).reset_index(0,drop=True)
     stocks = stocks.copy()
 
     #6 - Feature Engineer 7 - Distance from Highest High
     for n in range(1,40):
-        a = stocks.groupby('Ticker')['High'].rolling(n).max().reset_index()['High']
+        a = stocks.groupby('Ticker')['High'].rolling(n).max().reset_index(0,drop=True)
         stocks[f'Close.hh{n}'] = stocks['Close']/a
     stocks = stocks.copy()
     del a
     #7 - Feature Engineer 8 - Distance from Lowest Low
     for n in range(1,40):
-        a = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index()['Low']
+        a = stocks.groupby('Ticker')['Low'].rolling(n).min().reset_index(0,drop=True)
         stocks[f'Close.ll{n}'] = stocks['Close']/a
     stocks = stocks.copy()
     del a
 
     #8 - Feature Engineer 10 - Standard Deviation. This is the one causing probs. std doesnt work with NAs
     for n in range(2,40):
-        stocks[f'Close.sd{n}'] = stocks.groupby('Ticker')['Close'].rolling(n).std().reset_index()['Close']
+        stocks[f'Close.sd{n}'] = stocks.groupby('Ticker')['Close'].rolling(n).std().reset_index(0,drop=True)
     stocks = stocks.copy()
 
     #9 - Date information
@@ -232,16 +232,15 @@ def engineer_basic_features(stocks):
 
 
     #10 - Feature Engineer 10 - normalised value for previous Gap,
-    a = stocks.groupby('Ticker')['Close'].shift(1).reset_index()['Close']
+    a = stocks.groupby('Ticker')['Close'].shift(1).reset_index(0,drop=True)
     stocks['Last.Gap'] = (stocks['Open']- a)/stocks['Open']
-    del a
-    
+    del a    
     return stocks
 
 
 def add_target(stocks):
-    nxtopn = stocks.groupby('Ticker')['Open'].shift(-1).reset_index()['Open']
-    nxtcls = stocks.groupby('Ticker')['Close'].shift(-1).reset_index()['Close']
+    nxtopn = stocks.groupby('Ticker')['Open'].shift(-1)#.reset_index().reset_index(0,drop=True)
+    nxtcls = stocks.groupby('Ticker')['Close'].shift(-1)#.reset_index().reset_index(0,drop=True)
     stocks['y'] = (nxtcls - nxtopn)/nxtcls
     del nxtcls
     del nxtopn
