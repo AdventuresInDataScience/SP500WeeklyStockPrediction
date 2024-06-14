@@ -1,32 +1,58 @@
 ##############################################################################
 # Data Config
 
-#Keys
-fred_key = '378bdfc0c483b3259c41cecde2ae2f0f'
+# Keys
+fred_key = "378bdfc0c483b3259c41cecde2ae2f0f"
 
-#Paths
+# Paths
 constituents_path = "C:/Users/malha/Documents/Data/S&P 500 Historical Components & Changes(08-01-2023).csv"
 upper_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/"
 stocks_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.csv"
-stocks_path_parquet = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.parquet.gzip"
+stocks_path_parquet = (
+    "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/stocks1w.parquet.gzip"
+)
 macro_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/macros1w.csv"
 etf_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/etfs1w.csv"
 final_data_noTA_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/final_data_noTA.parquet.gzip"
 
-#Lists
-fred_list = ['MCOILWTICO', 'WCOILBRENTEU', 'UNRATE', 'FF', 'PCE', 'FYFSGDA188S', 'GDP',
-              'ADPWINDCONNERSA', 'CLDACBW027NBOG', 'WPRIME', 'RALACBW027NBOG', 'LOANS','OTHSECNSA', 
-              'CEU6500000001', 'TB3MS', 'DGDSRC1', 'DNRGRC1M027SBEA', 'AHEMAN',
-              'CEU3100000008','AHECONS', 'LNU03032229', 'LNU02032184', 'FEDFUNDS', 'CEU7000000008', 'CEU6000000008',
-              'CEU4200000008', 'PI', 'REALLNNSA', 'MVPHGFD027MNFRBDAL']
-#'MSPUS','DNPVRC1A027NBEA', 
+# Lists
+fred_list = [
+    "MCOILWTICO",
+    "WCOILBRENTEU",
+    "UNRATE",
+    "FF",
+    "PCE",
+    "FYFSGDA188S",
+    "GDP",
+    "ADPWINDCONNERSA",
+    "CLDACBW027NBOG",
+    "WPRIME",
+    "RALACBW027NBOG",
+    "LOANS",
+    "OTHSECNSA",
+    "CEU6500000001",
+    "TB3MS",
+    "DGDSRC1",
+    "DNRGRC1M027SBEA",
+    "AHEMAN",
+    "CEU3100000008",
+    "AHECONS",
+    "LNU03032229",
+    "LNU02032184",
+    "FEDFUNDS",
+    "CEU7000000008",
+    "CEU6000000008",
+    "CEU4200000008",
+    "PI",
+    "REALLNNSA",
+    "MVPHGFD027MNFRBDAL",
+]
+#'MSPUS','DNPVRC1A027NBEA',
 
-etf_list = ['^GSPC', 'XLE', 'XLI', 'XLB', 'XLY', 'XLP', 'XLV', 'XLF','XLU']
+etf_list = ["^GSPC", "XLE", "XLI", "XLB", "XLY", "XLP", "XLV", "XLF", "XLU"]
 
 ##############################################################################
 # Model Config
-
-
 
 
 # Model imports
@@ -42,74 +68,119 @@ import lightgbm as lgb
 from sklearn.ensemble import RandomForestRegressor
 
 # Variables that need one hot encoding, and other paths
-OHE_list = ['sector', 'industry', 'DayofWeek', 'Month']
-scaler_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
+OHE_list = ["sector", "industry", "DayofWeek", "Month"]
+scaler_model_path = (
+    "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/scaler_model.joblib"
+)
 interim_optimisations_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/interim_optimisations.joblib"
-pca_model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/pca_model.joblib"
+pca_model_path = (
+    "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/pca_model.joblib"
+)
 model_path = "C:/Users/malha/Documents/Data/SP500WeeklyStockPrediction/model.joblib"
 
 
-#model list
+# model list
 ridge = RidgeCV()
-rf = RandomForestRegressor(n_jobs = 4)
+rf = RandomForestRegressor(n_jobs=4)
 lf = LinearForestRegressor(Ridge())
 xgb = XGBRegressor()
 lgbm = LGBMRegressor()
 lgbml = lgb
 gpb = GPBoostRegressor()
-ktb = KTBoost.BoostingRegressor(loss='ls')
+ktb = KTBoost.BoostingRegressor(loss="ls")
 snap = SnapboostRegressor()
 
-#model params lists
+# model params lists
 model_param_list = [
-    (ridge, {'cv': [5,10]}),
-    (rf, {'max_depth': [10, 20, 30, None],
-        'max_features': [1,'sqrt'],
-        'min_samples_split': [2, 10, 25, 50],
-        'min_samples_leaf': [1, 5, 10, 30]}),
-    (lf, {'max_depth': [5, 10, 20, 50, 100],
-        'max_bins': [25, 50],
-        'min_samples_split': [2, 6, 15, 25],
-        'min_samples_leaf': [0.05, 0.1, 0.2]}),
-    (xgb, {'max_depth': [4,6,8,10],
-        'learning_rate': [0.3, 0.1, 0.01],
-        'lambda': [1, 0.8, 0.5, 0.1],
-        'alpha': [1, 0.8, 0.5, 0.1],
-        'gamma': [0,2,4,8],
-        'min_child_weight' : [0.3, 1, 4],
-        'colsample_bytree' : [0.5,0.8, 1],
-        'subsample' : [0.5,0.8,1]}),
-    (lgbm, {'max_depth': [-1,5,10,15],
-        'learning_rate': [0.3, 0.1, 0.01],
-        'colsample_bytree' : [0.5,0.8, 1],
-        'subsample' : [0.5,0.8,1],
-        'reg_lambda': [1, 0.8, 0.5, 0.1, 0],
-        'reg_alpha': [1, 0.8, 0.5, 0.1, 0],
-        'n_estimators': [50, 100, 200]}),
-    (lgbml, {'objective': 'regression',
-        'metric': 'rmse',
-        'num_leaves': 30,
-        'learning_rate': 0.05,
-        'verbosity': -1}),
-    (gpb, {'boosting_type': ['gbdt', 'dart', 'goss', 'rf'],
-           'max_depth': [-1,10,20,30],
-           'learning_rate': [0.3, 0.1, 0.01],
-           'n_estimators': [50, 100, 200],
-           'colsample_bytree' : [0.5,0.8, 1],
-           'reg_lambda': [1, 0.8, 0.5, 0.1, 0],
-           'reg_alpha': [1, 0.8, 0.5, 0.1, 0]}),
-    (ktb, {'learning_rate': [0.3, 0.1, 0.01],
-           'colsample_bytree' : [0.5,0.8, 1],
-           'lambda_l2': [1, 0.8, 0.5, 0.1, 0],
-           'alpha': [1, 0.8, 0.5, 0.1, 0]}),
-    (snap, {'base_learner':['tree', 'kernel'],
-            'n_estimators': [50, 100, 200],
-            'learning_rate': [0.3, 0.1, 0.01],
-            'max_depth': [3,5,10,15],
-            'gamma': [0.5,0.7,1],
-            'kernel':["rbf", 'laplace', 'GW']})]
+    (ridge, {"cv": [5, 10]}),
+    (
+        rf,
+        {
+            "max_depth": [10, 20, 30, None],
+            "max_features": [1, "sqrt"],
+            "min_samples_split": [2, 10, 25, 50],
+            "min_samples_leaf": [1, 5, 10, 30],
+        },
+    ),
+    (
+        lf,
+        {
+            "max_depth": [5, 10, 20, 50, 100],
+            "max_bins": [25, 50],
+            "min_samples_split": [2, 6, 15, 25],
+            "min_samples_leaf": [0.05, 0.1, 0.2],
+        },
+    ),
+    (
+        xgb,
+        {
+            "max_depth": [4, 6, 8, 10],
+            "learning_rate": [0.3, 0.1, 0.01],
+            "lambda": [1, 0.8, 0.5, 0.1],
+            "alpha": [1, 0.8, 0.5, 0.1],
+            "gamma": [0, 2, 4, 8],
+            "min_child_weight": [0.3, 1, 4],
+            "colsample_bytree": [0.5, 0.8, 1],
+            "subsample": [0.5, 0.8, 1],
+        },
+    ),
+    (
+        lgbm,
+        {
+            "max_depth": [-1, 5, 10, 15],
+            "learning_rate": [0.3, 0.1, 0.01],
+            "colsample_bytree": [0.5, 0.8, 1],
+            "subsample": [0.5, 0.8, 1],
+            "reg_lambda": [1, 0.8, 0.5, 0.1, 0],
+            "reg_alpha": [1, 0.8, 0.5, 0.1, 0],
+            "n_estimators": [50, 100, 200],
+        },
+    ),
+    (
+        lgbml,
+        {
+            "objective": "regression",
+            "metric": "rmse",
+            "num_leaves": 30,
+            "learning_rate": 0.05,
+            "verbosity": -1,
+        },
+    ),
+    (
+        gpb,
+        {
+            "boosting_type": ["gbdt", "dart", "goss", "rf"],
+            "max_depth": [-1, 10, 20, 30],
+            "learning_rate": [0.3, 0.1, 0.01],
+            "n_estimators": [50, 100, 200],
+            "colsample_bytree": [0.5, 0.8, 1],
+            "reg_lambda": [1, 0.8, 0.5, 0.1, 0],
+            "reg_alpha": [1, 0.8, 0.5, 0.1, 0],
+        },
+    ),
+    (
+        ktb,
+        {
+            "learning_rate": [0.3, 0.1, 0.01],
+            "colsample_bytree": [0.5, 0.8, 1],
+            "lambda_l2": [1, 0.8, 0.5, 0.1, 0],
+            "alpha": [1, 0.8, 0.5, 0.1, 0],
+        },
+    ),
+    (
+        snap,
+        {
+            "base_learner": ["tree", "kernel"],
+            "n_estimators": [50, 100, 200],
+            "learning_rate": [0.3, 0.1, 0.01],
+            "max_depth": [3, 5, 10, 15],
+            "gamma": [0.5, 0.7, 1],
+            "kernel": ["rbf", "laplace", "GW"],
+        },
+    ),
+]
 
-'''
+"""
 #Light GBM linear trees uses an very odd implementation. I need to add this last
 I'll apply a single if statement check for light gbml, 
 and if True, apply the additional linear data step'
@@ -138,11 +209,11 @@ model_normal = lgb.train(params, train_data_normal)
 
 #Early stopping rounds
 present in XGBoost, LGBM, GPBoost, snapml, 
-'''
+"""
 ##############################################################################
 
 
-'''
+"""
 random forest
 ridge
 XBnet
@@ -184,4 +255,4 @@ python setup.py install
 
 
 
-'''
+"""
